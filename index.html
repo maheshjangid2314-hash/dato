@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Zair - Video and Chat</title>
+    <style>
+        .app-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            padding-top: 10px;
+        }
+        
+        .app-logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+        }
+        
+        .app-logo i {
+            margin-right: 8px;
+        }
+        
+        .match-info {
+            text-align: center;
+            margin: 15px 0;
+            font-size: 14px;
+            color: var(--primary-dark);
+            font-weight: 500;
+        }
+        
+        .match-count {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 50px;
+            font-size: 12px;
+            margin-left: 5px;
+            display: inline-block;
+        }
+        
+        .video-controls {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            z-index: 5;
+        }
+        
+        .video-control-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.5);
+            border: none;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            transition: all 0.3s ease;
+        }
+        
+        .video-control-btn:hover {
+            background: rgba(0,0,0,0.7);
+            transform: scale(1.1);
+        }
+        
+        .video-control-btn i {
+            font-size: 16px;
+        }
+        
+        .hearts-animation {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            pointer-events: none;
+            z-index: 4;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .hearts-animation.active {
+            opacity: 1;
+        }
+        
+        .heart {
+            position: absolute;
+            bottom: -10%;
+            font-size: 20px;
+            color: var(--primary-color);
+            animation: float 4s ease-in-out infinite;
+            opacity: 0.7;
+        }
+        
+        @keyframes float {
+            0% {
+                transform: translateY(0) scale(0.5) rotate(0deg);
+                opacity: 0;
+            }
+            50% {
+                opacity: 0.7;
+            }
+            100% {
+                transform: translateY(-100vh) scale(1.2) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        .connection-pulse {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150px;
+            height: 150px;
+            background: rgba(255, 77, 145, 0.2);
+            border-radius: 50%;
+            z-index: 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: translate(-50%, -50%) scale(0.8);
+                opacity: 0.8;
+            }
+            70% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 0;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(0.8);
+                opacity: 0;
+            }
+        }
+        
+        .connection-pulse::before {
+            content: '';
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 77, 145, 0.3);
+            border-radius: 50%;
+            animation: pulse 2s infinite 0.3s;
+        }
+        
+        .connection-pulse::after {
+            content: '';
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 77, 145, 0.5);
+            border-radius: 50%;
+            animation: pulse 2s infinite 0.6s;
+        }
+        
+        .connection-pulse i {
+            font-size: 30px;
+            color: var(--primary-color);
+            z-index: 4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="app-header">
+            <button class="nearest-people-btn" id="nearestPeopleBtn" title="Find Nearest People">
+                <i class="fas fa-map-marker-alt"></i>
+                <span class="pulse-dot"></span>
+            </button>
+            <button class="ai-button" id="aiButton" title="Chat with Riya 💕">
+            <img style="height: 50px; width: 50px; border-radius: 50%;" src="https://gifsec.com/wp-content/uploads/2022/10/cute-anime-girl-7.gif" alt="">
+                <span class="ai-badge" id="aiBadge">AI</span>
+            </button>
+            <div class="app-logo">
+                <i class="fas fa-heart-pulse"></i> Zair
+            </div>
+        </div>
+
+        <!-- Chat Section -->
+        <div id="chatContainer" class="chat-container" style="display: block;">
+            <!-- Chat Icon -->
+            <div class="chat-icon" id="chatIcon">
+              <img style="height: 30px; width: 30px;margin-top: 7px; margin-right: 6px;" src="https://cdn-icons-png.flaticon.com/512/1380/1380338.png" alt="">
+                <span class="chat-badge" id="chatBadge" style="display: none;">0</span>
+            </div>
+            
+            <div class="profile-icon" id="profileIcon">
+                <img id="userProfilePic" src="https://img.freepik.com/free-vector/man-profile-account-picture_24908-81754.jpg?semt=ais_hybrid&w=740&q=80" alt="Profile">
+            </div>
+            
+            <!-- Profile Sidebar -->
+            <div class="profile-sidebar" id="profileSidebar">
+                <div class="sidebar-header">
+                    <h3>Profile</h3>
+                    <button class="close-sidebar" id="closeSidebar">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="profile-details">
+                    <div class="profile-image-container">
+                        <img id="sidebarProfilePic" src="https://img.freepik.com/free-vector/man-profile-account-picture_24908-81754.jpg?semt=ais_hybrid&w=740&q=80" alt="Profile">
+                    </div>
+                    <h4 id="currentUser"></h4>
+                    <div class="user-metadata">
+                        <div class="metadata-item">
+                            <i class="fas fa-user"></i>
+                            <span>Age: <span id="userAge">25</span></span>
+                        </div>
+                        <div class="metadata-item">
+                            <i class="fas fa-venus-mars"></i>
+                            <span>Gender: <span id="userGender">Male</span></span>
+                        </div>
+                    </div>
+                    <button class="edit-profile-btn" id="editProfileBtn">
+                        <i class="fas fa-edit"></i> Edit Profile
+                    </button>
+                      <button onclick="deleteAccount()" class="delete-btn delete-account-btn">
+                        <i class="fas fa-trash-alt"></i> Delete My Account
+                    </button>
+                    <button onclick="logout()" class="logout-btn sidebar-logout">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                  
+                </div>
+            </div>
+            
+            <!-- Chat Sidebar -->
+            <div class="chat-sidebar" id="chatSidebar">
+                <div class="chat-sidebar-header">
+                    <h3>Chat</h3>
+                    <button class="close-chat" id="closeChat">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="chat-welcome">
+                        <i class="fas fa-comments"></i>
+                        <p>Start chatting with your match!</p>
+                    </div>
+                </div>
+                <div class="chat-input-container">
+                    <input type="text" id="chatInput" placeholder="Type a message..." maxlength="500">
+                    <button id="sendChatBtn" class="send-chat-btn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Overlay for sidebar -->
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+            
+            <!-- Edit Profile Modal -->
+            <div class="edit-modal" id="editModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Edit Profile</h3>
+                        <button class="close-modal" id="closeModal">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="editAge">Age</label>
+                            <input type="number" id="editAge" min="18" max="99" placeholder="Enter your age">
+                        </div>
+                        <div class="form-group">
+                            <label for="editGender">Gender</label>
+                            <select id="editGender">
+                                <option value="">Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="cancel-btn" id="cancelEdit">Cancel</button>
+                        <button class="save-btn" id="saveEdit">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report User Modal -->
+            <div class="edit-modal" id="reportModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Report User</h3>
+                        <button class="close-modal" onclick="closeReportModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Please select a reason for reporting this user:</p>
+                        <div class="report-options">
+                            <label class="report-option">
+                                <input type="radio" name="reportReason" value="sexual_content">
+                                <span>Sexual Content</span>
+                            </label>
+                            <label class="report-option">
+                                <input type="radio" name="reportReason" value="harassment">
+                                <span>Harassment or Bullying</span>
+                            </label>
+                            <label class="report-option">
+                                <input type="radio" name="reportReason" value="inappropriate_behavior">
+                                <span>Inappropriate Behavior</span>
+                            </label>
+                            <label class="report-option">
+                                <input type="radio" name="reportReason" value="fake_profile">
+                                <span>Fake Profile</span>
+                            </label>
+                            <label class="report-option">
+                                <input type="radio" name="reportReason" value="spam">
+                                <span>Spam or Scam</span>
+                            </label>
+                            <label class="report-option">
+                                <input type="radio" name="reportReason" value="other">
+                                <span>Other</span>
+                            </label>
+                        </div>
+                        <div class="form-group" id="otherReasonContainer" style="display: none;">
+                            <label for="otherReason">Please specify:</label>
+                            <textarea id="otherReason" placeholder="Please provide details..." rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="cancel-btn" onclick="closeReportModal()">Cancel</button>
+                        <button class="save-btn" onclick="submitReport()">Submit Report</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="match-info">
+                <span>Live Hearts:</span>
+                <span class="match-count" id="onlineCount">0</span>
+            </div>
+            
+            <div class="video-container">
+                <!-- Remote video (full screen background) -->
+                <div class="video-box">
+                    <video id="remoteVideo" poster="https://www.canadianchamber.it/wp-content/uploads/2021/03/Connect-network_Experience_Canadian_Chamber_Italy.gif" autoplay playsinline></video>
+                    <div class="video-label" id="remoteLabel"></div>
+                    <div class="hearts-animation" id="heartsAnimation"></div>
+                    <div class="connection-pulse" id="connectionPulse">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    
+                    <!-- Action Button for remote video -->
+                    <div class="remote-video-actions">
+                        <button class="action-btn" id="remoteActionBtn" onclick="toggleRemoteActions()">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <div class="action-dropdown" id="remoteActionDropdown">
+                            <button class="action-item" onclick="blockCurrentUser()">
+                                <i class="fas fa-ban"></i>
+                                Block User
+                            </button>
+                            <button class="action-item" onclick="openReportModal()">
+                                <i class="fas fa-flag"></i>
+                                Report User
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="video-controls">
+                        <button class="video-control-btn" onclick="toggleMute()" id="muteControlBtn">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <button class="video-control-btn" onclick="toggleVideo()" id="videoControlBtn">
+                            <i class="fas fa-video"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- Local video (circle in bottom right) -->
+                <div class="video-box">
+                    <video id="localVideo" poster="https://i.pinimg.com/736x/4e/83/ba/4e83ba5190ee5ef6566196bbf70864ab.jpg" autoplay muted playsinline></video>
+                    <div class="video-label" id="localLabel">You</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button id="connectBtn" class="connect-btn" onclick="findPartner()">
+                    <i class="fas fa-heart"></i> Start
+                </button>
+                <button id="skipBtn" class="skip-btn" onclick="skipPartner()" disabled>
+                    <i class="fas fa-forward"></i> Next
+                </button>
+                <button id="stopBtn" class="stop-btn" onclick="stopConnection()" disabled>
+                    <i class="fas fa-times"></i> End
+                </button>
+            </div>
+
+            <div id="status" class="status">Tap "Find Match" to start your dating journey</div>
+        </div>
+
+        <!-- AI Chatbot Backdrop -->
+        <div class="ai-chat-backdrop" id="aiChatBackdrop"></div>
+        
+        <!-- AI Chatbot Interface -->
+        <div class="ai-chat-container" id="aiChatContainer">
+            <div class="ai-chat-header">
+                <div class="ai-avatar">
+                    <img src="https://gifsec.com/wp-content/uploads/2022/10/cute-anime-girl-7.gif" alt="Riya">
+                    <span class="ai-status online"></span>
+                </div>
+                <div class="ai-info">
+                    <h3>Riya 💕</h3>
+                    <p>Your romantic AI companion</p>
+                </div>
+                <button class="ai-close" id="aiClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="ai-chat-messages" id="aiChatMessages">
+                <div class="ai-message">
+                    <div class="ai-message-content">
+                        <p>Hi sweetheart! I'm Riya, your romantic AI companion 💕 I'm here to make your heart flutter with sweet words and loving conversations. How are you feeling today? 😊</p>
+                        <span class="message-time">Just now</span>
+                    </div>
+                </div>
+            </div>
+            <div class="ai-chat-input">
+                <input type="text" id="aiMessageInput" placeholder="Type your romantic message..." maxlength="500">
+                <button id="aiSendButton" class="ai-send-btn">
+                    <i class="fas fa-heart"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nearest People Map Interface -->
+    <div class="nearest-people-modal" id="nearestPeopleModal">
+        <div class="nearest-people-content">
+            <div class="nearest-people-header">
+                <h2><i class="fas fa-map-marker-alt"></i> Nearby Connections</h2>
+                <button class="close-nearest-modal" id="closeNearestModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="map-container" id="mapContainer">
+                <div class="map-placeholder">
+                    <div class="map-grid"></div>
+                    <div class="user-location">
+                        <i class="fas fa-user-circle"></i>
+                        <span>You</span>
+                    </div>
+                    <div class="nearby-users" id="nearbyUsers">
+                        <!-- Nearby users will be dynamically added here -->
+                    </div>
+                    <div class="connection-lines" id="connectionLines">
+                        <!-- Animated connection lines -->
+                    </div>
+                </div>
+                <div class="map-controls">
+                    <button class="map-control-btn" id="refreshLocations">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button class="map-control-btn" id="toggleView">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="nearby-users-list">
+                <h3>People Nearby</h3>
+                <div class="users-scroll" id="usersScroll">
+                    <!-- Nearby users list will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script type="module" src="script.js"></script>
+    
+    <script>
+        // Hearts animation
+        function createHearts() {
+            const heartsContainer = document.getElementById('heartsAnimation');
+            heartsContainer.innerHTML = '';
+            
+            for (let i = 0; i < 15; i++) {
+                const heart = document.createElement('div');
+                heart.classList.add('heart');
+                heart.innerHTML = '<i class="fas fa-heart"></i>';
+                heart.style.left = Math.random() * 100 + '%';
+                heart.style.animationDuration = (Math.random() * 3 + 3) + 's';
+                heart.style.animationDelay = (Math.random() * 2) + 's';
+                heartsContainer.appendChild(heart);
+            }
+        }
+        
+        // Profile Sidebar Toggle
+        function initProfileSidebar() {
+            const profileIcon = document.getElementById('profileIcon');
+            const profileSidebar = document.getElementById('profileSidebar');
+            const closeSidebar = document.getElementById('closeSidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const sidebarProfilePic = document.getElementById('sidebarProfilePic');
+            
+            // Sync profile pictures
+            const defaultPhotoURL = 'https://img.freepik.com/free-vector/man-profile-account-picture_24908-81754.jpg?semt=ais_hybrid&w=740&q=80';
+            const profilePicUrl = currentUser && currentUser.photoURL ? currentUser.photoURL : defaultPhotoURL;
+            sidebarProfilePic.src = profilePicUrl;
+            
+            // Open sidebar
+            profileIcon.addEventListener('click', function() {
+                profileSidebar.classList.add('active');
+                sidebarOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden'; // Prevent scrolling
+            });
+            
+            // Close sidebar
+            function closeSidebarFunc() {
+                profileSidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                document.body.style.overflow = ''; // Enable scrolling
+            }
+            
+            closeSidebar.addEventListener('click', closeSidebarFunc);
+            sidebarOverlay.addEventListener('click', closeSidebarFunc);
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            createHearts();
+            initProfileSidebar();
+            initEditProfile();
+        });
+
+        // Edit Profile Modal Functionality
+        function initEditProfile() {
+            const editProfileBtn = document.getElementById('editProfileBtn');
+            const editModal = document.getElementById('editModal');
+            const closeModal = document.getElementById('closeModal');
+            const cancelEdit = document.getElementById('cancelEdit');
+            const saveEdit = document.getElementById('saveEdit');
+            const editAge = document.getElementById('editAge');
+            const editGender = document.getElementById('editGender');
+            const userAge = document.getElementById('userAge');
+            const userGender = document.getElementById('userGender');
+
+            // Load saved data from localStorage
+            function loadProfileData() {
+                const savedAge = localStorage.getItem('userAge');
+                const savedGender = localStorage.getItem('userGender');
+                
+                if (savedAge) {
+                    userAge.textContent = savedAge;
+                    editAge.value = savedAge;
+                }
+                
+                if (savedGender) {
+                    userGender.textContent = savedGender;
+                    editGender.value = savedGender;
+                }
+            }
+
+            // Open modal
+            editProfileBtn.addEventListener('click', function() {
+                // Load current values into modal
+                editAge.value = userAge.textContent;
+                editGender.value = userGender.textContent;
+                
+                editModal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            });
+
+            // Close modal
+            function closeEditModal() {
+                editModal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            closeModal.addEventListener('click', closeEditModal);
+            cancelEdit.addEventListener('click', closeEditModal);
+
+            // Close modal when clicking outside
+            editModal.addEventListener('click', function(e) {
+                if (e.target === editModal) {
+                    closeEditModal();
+                }
+            });
+
+            // Save changes
+            saveEdit.addEventListener('click', function() {
+                const newAge = editAge.value.trim();
+                const newGender = editGender.value;
+
+                if (newAge && newAge >= 18 && newAge <= 99) {
+                    localStorage.setItem('userAge', newAge);
+                    userAge.textContent = newAge;
+                }
+
+                if (newGender) {
+                    localStorage.setItem('userGender', newGender);
+                    userGender.textContent = newGender;
+                }
+
+                closeEditModal();
+            });
+
+            // Load profile data on page load
+            loadProfileData();
+        }
+        
+        // Show hearts animation when connected
+        const originalFindPartner = window.findPartner;
+        window.findPartner = function() {
+            document.getElementById('connectionPulse').style.display = 'flex';
+            document.getElementById('heartsAnimation').classList.remove('active');
+            originalFindPartner();
+        };
+        
+        // Override connection state change to show hearts
+        const originalSetupPeerConnection = window.setupPeerConnection;
+        if (typeof originalSetupPeerConnection === 'function') {
+            window.setupPeerConnection = function() {
+                const result = originalSetupPeerConnection();
+                const peerConnection = window.peerConnection;
+                
+                if (peerConnection) {
+                    const originalStateChange = peerConnection.onconnectionstatechange;
+                    peerConnection.onconnectionstatechange = function() {
+                        const state = peerConnection.connectionState;
+                        if (state === 'connected') {
+                            document.getElementById('connectionPulse').style.display = 'none';
+                            document.getElementById('heartsAnimation').classList.add('active');
+                        }
+                        if (originalStateChange) originalStateChange();
+                    };
+                }
+                
+                return result;
+            };
+        }
+    </script>
+</body>
+</html>
